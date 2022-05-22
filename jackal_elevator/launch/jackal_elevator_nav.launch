@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <!--- Run Jackal Gazebo -->  
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="world_name" default="$(find jackal_elevator)/worlds/modified_elevator.world" />
+  <arg name="map_file_0" default="$(find jackal_elevator)/maps/jackal_elevator_ground_floor.yaml"/> 
+  <arg name="map_file_1" default="$(find jackal_elevator)/maps/jackal_elevator_first_floor.yaml"/>
+  <arg name="config" default="navigation" />
+  <!-- <arg name="config" default="gmapping" /> -->
+  <arg name="front_laser" default="true" />
+  <arg name="use_map_topic" default="false"/>
+  <arg name="scan_topic" default="$(eval optenv('JACKAL_LASER_TOPIC', 'front/scan'))" />
+
+  <!-- Launch Gazebo with the specified world -->
+  <include file="$(find jackal_elevator)/launch/jackal_repos_world.launch">
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="world_name" value="$(arg world_name)" />
+    <arg name="front_laser" value="$(arg front_laser)" />
+  </include>
+
+  <!-- Run the map servers for both the levels -->
+ <node name="map_server_ground" pkg="map_server" type="map_server" args="$(arg map_file_0)">
+ <remap from="/map" to="/map_0"/>
+ </node>
+
+ <node name="map_server_first" pkg="map_server" type="map_server" args="$(arg map_file_1)">
+ <remap from="/map" to="/map_1"/>
+ </node>
+
+  <!--- Run AMCL -->
+  <include file="$(find jackal_navigation)/launch/include/amcl.launch">
+    <arg name="use_map_topic" value="$(arg use_map_topic)" />
+    <arg name="scan_topic"    value="$(arg scan_topic)" />
+  </include>
+
+  <!--- Run Move Base -->
+ <include file="$(find jackal_navigation)/launch/include/move_base.launch" />
+
+ <node name="map_multiplexer" pkg="jackal_elevator" type="multimap_mux" />
+
+  <!--- Run Jackal RViz -->  
+  <include file="$(find jackal_viz)/launch/view_robot.launch">
+    <arg name="config" value="$(arg config)"/>    
+  </include>
+
+</launch>
